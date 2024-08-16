@@ -1,0 +1,32 @@
+
+- name: Update sshd_config
+  become: true
+  blockinfile:
+    dest: "/etc/ssh/sshd_config"
+    insertafter: "^Include /etc/ssh/sshd_config"
+    block: |
+      Protocol 2
+      PasswordAuthentication no
+      PermitEmptyPasswords no
+      PermitRootLogin yes
+      MaxAuthTries 3
+
+- name: Set authorized key taken from file for pi
+  ansible.posix.authorized_key:
+    user: pi
+    state: present
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+- name: Set authorized key taken from file for root
+  become: true
+  ansible.posix.authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+- name: Restart sshd service
+  become: true
+  service:
+    name: sshd
+    state: restarted
+    enabled: true

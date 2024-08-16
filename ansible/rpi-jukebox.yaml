@@ -1,0 +1,112 @@
+- name: "RPi Jukebox Setup"
+  hosts: raspberrypis
+  vars:
+    swap_size_mb: 1024
+  tasks:
+    - name: Update Raspberry Pi boot configuration
+      become: true
+      args:
+        executable: /bin/bash
+      shell: |
+        # Enable SPI
+        raspi-config nonint do_spi 0
+
+        cmdline_file=/boot/firmware/cmdline.txt
+        boot_conf=$(head -1 "${cmdline_file}")
+        cgroup_settings="cgroup_memory=1 cgroup_enable=memory"
+        if ! echo "${boot_conf}" | grep -q "${cgroup_settings}"; then
+          {
+            echo "${boot_conf} ${cgroup_settings}"
+            echo "# ${boot_conf}"
+          } > "${cmdline_file}"
+        fi
+
+    - name: Update firmware configuration
+      become: true
+      shell: |
+        config=$(cat <<EOF
+
+        # Enable shutdown functionality via GPIO 3.
+        dtoverlay=gpio-shutdown,gpio_pin=3
+
+        # Enable serial console, used for power indicator LED
+        enable_uart=1
+        EOF
+        )
+        echo "${config}" >> /boot/firmware/config.txt
+
+    - name: Update apt-get repo and cache
+      become: true
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Thin out Raspberry Pi
+      become: yes
+      become_method: sudo
+      shell: |
+        pkgs="bluez apt-listchanges dirmngr eject v4l-utils ppp modemmanager build-essential nfs-common"
+        echo "${pkgs}" | tr ' ' '\n' | xargs apt-get -y remove --purge
+        apt -i autoremove
+
+        # rm extra raspbian dirs
+        rm -rf /home/pi/Desktop /home/pi/Documents /home/pi/Downloads /home/pi/Music /home/pi/oldconffiles /home/pi/Pictures /home/pi/Public /home/pi/python_games /home/pi/Templates /home/pi/Videos
+  
+    - name: Upgrade all apt packages
+      become: true
+      apt: 
+        upgrade: dist
+
+    - name: Install packages
+      become: true
+      block:
+      - name: Install APT packages
+        apt:
+          pkg:
+            - git
+            - vim
+            - rclone
+            - curl
+            - pulseaudio
+
+      - name: Install yq
+        shell: |
+          curl -L --silent --fail -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64
+          chmod +x /usr/local/bin/yq
+
+    - name: Setup automatic upgrades
+      become: true
+      cron:
+        name: "Update and upgrade"
+        minute: "0"
+        hour: "5"
+        job: "apt update -q -y && apt dist-upgrade -q -y"
+
+    - name: SSH
+      ansible.builtin.include_tasks:
+        file: tasks/ssh.yml
+
+    - name: Reboot
+      become: yes
+      ansible.builtin.reboot:
+
+    - name: Setup K3s
+      ansible.builtin.include_tasks:
+        file: tasks/k3s.yml
+
+    - name: Create Jukebox directory
+      become: true
+      shell: |
+        mkdir -p /jukeboxd/hotloading
+
+    - name: Setup PulseAudio
+      ansible.builtin.include_tasks:
+        file: tasks/pulseaudio.yml      
+
+    - name: "Post-setup cleanup"
+      become: true
+      shell: |
+        rm /usr/local/bin/yq
+
+    - name: Create Jukebox Drive directory
+      become: true
+      shell: |
+        mkdir -p /data/jukebox-drive

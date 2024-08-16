@@ -1,0 +1,94 @@
+- name: pulseaudio 1
+  become: true
+  file:
+    path: "/etc/systemd/system/pulseaudio.service"
+    state: touch
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+
+- name: pulseaudio 2
+  become: true
+  copy:
+    dest: "/etc/systemd/system/pulseaudio.service"
+    content: |
+      # systemd service spec for pulseaudio running in system mode -- not recommended though!
+      [Unit]
+      Description=PulseAudio Sound Server
+      After=avahi-daemon.service network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/bin/pulseaudio --system --disallow-exit --disallow-module-loading
+      ExecReload=/bin/kill -HUP $MAINPID
+      Restart=always
+      RestartSec=5s
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: pulseaudio 3
+  become: true
+  ansible.builtin.shell: |
+    # TODO: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html
+    systemctl --global disable pulseaudio.service pulseaudio.socket
+    usermod -a -G pulse-access root
+    usermod -a -G pulse-access pi
+    systemctl enable pulseaudio.service
+    systemctl start pulseaudio.service
+
+- name: pulseaudio 4
+  become: true
+  copy:
+    dest: /etc/pulse/client.conf
+    content: |
+      default-server = unix:/run/pulse/native.socket
+      autospawn = no
+
+- name: pulseaudio 5
+  become: true
+  copy:
+    dest: "/etc/pulse/system.pa"
+    content: |
+      # This startup script is used only if PulseAudio is started in system
+      # mode.
+
+      ### Automatically restore the volume of streams and devices
+      load-module module-device-restore
+      load-module module-stream-restore
+      load-module module-card-restore
+
+      ### Automatically load driver modules depending on the hardware available
+      .ifexists module-udev-detect.so
+      load-module module-udev-detect
+      .else
+      ### Use the static hardware detection module (for systems that lack udev/hal support)
+      load-module module-detect
+      .endif
+
+      ### Load several protocols
+      .ifexists module-esound-protocol-unix.so
+      load-module module-esound-protocol-unix
+      .endif
+      load-module module-native-protocol-unix auth-anonymous=true socket=/run/pulse/native.socket
+
+      ### Automatically restore the default sink/source when changed by the user
+      ### during runtime
+      ### NOTE: This should be loaded as early as possible so that subsequent modules
+      ### that look up the default sink/source get the right value
+      load-module module-default-device-restore
+
+      ### Make sure we always have a sink around, even if it is a null sink.
+      load-module module-always-sink
+
+      ### Automatically suspend sinks/sources that become idle for too long
+      load-module module-suspend-on-idle
+
+      ### Enable positioned event sounds
+      load-module module-position-event-sounds
+
+      ### Allow including a system.pa.d directory, which if present, can be used
+      ### for additional configuration snippets.
+      ### Note that those snippet files must have a .pa file extension, not .conf
+      .nofail
+      .include /etc/pulse/system.pa.d

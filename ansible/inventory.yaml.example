@@ -1,0 +1,6 @@
+raspberrypis:
+  hosts:
+    some-hostname:
+      ansible_user: "pi"
+      ansible_password: "raspberry"
+      ansible_port: 22

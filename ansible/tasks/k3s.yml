@@ -1,0 +1,36 @@
+- name: Create directory for K3s configuration
+  become: true
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Create K3s configuration
+  become: true
+  copy:
+    dest: /etc/rancher/k3s/config.yaml
+    content: |
+      tls-san:
+        - "{{ inventory_hostname }}"
+
+- name: Install K3s
+  become: true
+  ansible.builtin.shell: |
+    if ! systemctl is-active k3s.service > /dev/null 2>&1; then
+      curl -sfL https://get.k3s.io | sh -
+    fi
+    # Check for Ready node, takes ~30 seconds 
+    k3s kubectl get node
+
+- name: Create kubeconfig for remote access
+  become: true
+  ansible.builtin.shell: |
+    yq eval '.clusters[0].cluster.server="https://{{ inventory_hostname }}:6443"' \
+      < /etc/rancher/k3s/k3s.yaml \
+      > /etc/rancher/k3s/k3s-remote.yaml
+
+- name: Fetching remote kubeconfig
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s-remote.yaml
+    dest: kubeconfig-{{ inventory_hostname }}.yaml
+    flat: yes
