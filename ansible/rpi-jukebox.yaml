@@ -24,16 +24,20 @@
     - name: Update firmware configuration
       become: true
       shell: |
-        config=$(cat <<EOF
+        # Create initial backup of the config.txt file.
+        if [[ ! -e /boot/firmware/config.txt.orig ]]; then
+          cp /boot/firmware/config.txt /boot/firmware/config.txt.orig
+        fi
 
+        # Re-create adjusted configuration.
+        cp /boot/firmware/config.txt.orig /boot/firmware/config.txt
+        cat >>/boot/firmware.config.txt <<EOF
         # Enable shutdown functionality via GPIO 3.
         dtoverlay=gpio-shutdown,gpio_pin=3
 
         # Enable serial console, used for power indicator LED
         enable_uart=1
         EOF
-        )
-        echo "${config}" >> /boot/firmware/config.txt
 
     - name: Update apt-get repo and cache
       become: true
@@ -80,6 +84,13 @@
         hour: "5"
         job: "apt update -q -y && apt dist-upgrade -q -y"
 
+    - name: Shutdown Mechanism
+      ansible.builtin.include_tasks:
+        file: tasks/shutdown.yml
+      tags:
+      - base
+      - shutdown
+
     - name: SSH
       ansible.builtin.include_tasks:
         file: tasks/ssh.yml
@@ -95,11 +106,11 @@
     - name: Create Jukebox directory
       become: true
       shell: |
-        mkdir -p /jukeboxd/hotloading
+        mkdir -p /jukebox/hotloading
 
     - name: Setup PulseAudio
       ansible.builtin.include_tasks:
-        file: tasks/pulseaudio.yml      
+        file: tasks/pulseaudio.yml
 
     - name: "Post-setup cleanup"
       become: true

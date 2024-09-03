@@ -1,0 +1,57 @@
+[package]
+name = "rustberry"
+version = "0.4.0"
+authors = ["Moritz Clasmeier <mtesseract@silverratio.net>"]
+edition = "2018"
+description = "Rustberry Jukebox"
+
+[lib]
+name = "rustberry"
+path = "src/lib.rs"
+
+[dependencies]
+embedded-hal-02 = { package = "embedded-hal", version = "0.2", optional = true }
+embedded-hal-1 = { package = "embedded-hal", version = "1.0" }
+linux-embedded-hal = "0.4.0"
+embedded-hal-bus = "0.1.0"
+embedded-error = "0.6.0"
+anyhow = "1.0.81"
+serde_yaml = "0.9.33"
+hex = "0.4"
+
+# http = "0.2.1"
+# gotham = "0.4.0"
+# gotham_derive = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+crossbeam-channel = "0.5.12"
+futures = "0.3.4"
+# blinkt = "0.5.0"
+mime = "0.3"
+# dialoguer = "0.4.0"
+tokio = {version = "1.37", features = ["full", "rt-multi-thread"]}
+# reqwest = {version = "0.10.4", default-features = false, features = ["blocking", "json", "stream"]}
+
+rodio = "0.19"
+cpal = "0.15"
+base64 = "0.10.1"
+mfrc522 = { version = "0.7.0", features = ["std"] }
+regex = "1.0"
+spidev = "0.4.0"
+envy = "0.4.0"
+signal-hook = "0.1.10"
+url = "2.1.0"
+gpio-cdev = "0.2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+sysfs_gpio = "0.5"
+rmp = "^0.8"
+bytes = "0.5.4"
+async-trait = "0.1.30"
+
+[[bin]]
+name = "jukebox"
+path = "src/main.rs"
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"

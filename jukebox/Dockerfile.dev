@@ -1,0 +1,25 @@
+FROM --platform=$BUILDPLATFORM rust:1.74 AS dev
+
+RUN <<EOF
+dpkg --add-architecture arm64 && apt-get update
+apt-get update && \
+apt-get -y install \
+	binutils-aarch64-linux-gnu \
+	gcc-aarch64-linux-gnu \
+	curl \
+	vim \
+	build-essential \
+	libasound2-dev:arm64 \
+	pkg-config:arm64
+EOF
+
+RUN <<EOF
+rustup target add aarch64-unknown-linux-gnu
+rustup component add rustfmt
+rustup component add clippy
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+PATH="/root/.cargo/bin:${PATH}"
+cargo install cargo-chef
+cargo binstall -y cargo-watch
+cargo install cargo-audit
+EOF
