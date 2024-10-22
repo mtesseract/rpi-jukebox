@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -20,7 +21,7 @@ impl TagConf {
 
 #[derive(Debug, Clone)]
 pub struct TagMapper {
-    file: String,
+    path: PathBuf,
     conf: Arc<RwLock<TagMapperConfiguration>>,
 }
 
@@ -57,7 +58,7 @@ impl TagMapperConfiguration {
 impl TagMapper {
     fn refresh(&mut self) -> Result<()> {
         debug!("Refreshing tag mapper");
-        let content = match fs::read_to_string(&self.file) {
+        let content = match fs::read_to_string(&self.path) {
             Ok(cnt) => cnt,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 debug!("No tag mapper configuration found");
@@ -65,15 +66,15 @@ impl TagMapper {
             }
             Err(err) => {
                 return Err(err).with_context(|| {
-                    format!("Reading tag mapper configuration at '{}'", self.file)
+                    format!("Reading tag mapper configuration at '{}'", self.path.display())
                 });
             }
         };
 
         let conf: TagMapperConfiguration = serde_yaml::from_str(&content).with_context(|| {
             format!(
-                "YAML unmarshalling tag_mapper configuration at {}",
-                self.file
+                "YAML unmarshalling Tag Mapper configuration at {}",
+                self.path.display()
             )
         })?;
         let mut w = self.conf.write().unwrap();
@@ -86,18 +87,18 @@ impl TagMapper {
         TagMapperHandle { conf }
     }
 
-    fn new(filename: &str) -> Self {
+    fn new(path: &Path) -> Self {
         let empty_conf = Arc::new(RwLock::new(TagMapperConfiguration::new()));
         let tag_mapper = TagMapper {
-            file: filename.to_string(),
+            path: path.to_path_buf(),
             conf: empty_conf,
         };
         tag_mapper
     }
 
-    pub fn new_initialized(filename: &str) -> Result<TagMapperHandle> {
-        info!("Initializing tag mapper, using tag mapper configuration file {}", filename);
-        let mut tag_mapper = Self::new(filename);
+    pub fn new_initialized(path: &Path) -> Result<TagMapperHandle> {
+        info!("Initializing tag mapper, using tag mapper configuration file {}", path.display());
+        let mut tag_mapper = Self::new(path);
         tag_mapper.refresh()?;
         let handle = tag_mapper.handle();
         let _join_handle = tokio::task::spawn_blocking(move || loop {
