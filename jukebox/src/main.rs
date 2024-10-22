@@ -46,7 +46,10 @@ async fn main() -> Result<()> {
     }
 
     info!("Creating TagMapper");
-    let tag_mapper = TagMapper::new_initialized(&config.tag_mapper_configuration_file)
+    let base_directory = Path::new(&config.audio_base_directory);
+    let tag_mapper_conf_file = Path::new(&config.tag_mapper_configuration_file);
+    let tag_mapper_pathbuf = base_directory.join(tag_mapper_conf_file);
+    let tag_mapper = TagMapper::new_initialized(&tag_mapper_pathbuf.as_path())
         .context("Creating tag_mapper")?;
     tag_mapper.debug_dump();
 
