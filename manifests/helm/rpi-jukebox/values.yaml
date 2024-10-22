@@ -1,0 +1,4 @@
+# Configure rclone. See https://rclone.org/ for more information.
+# rclone:
+#   secretConfiguration: |
+#     <rclone configuration file>

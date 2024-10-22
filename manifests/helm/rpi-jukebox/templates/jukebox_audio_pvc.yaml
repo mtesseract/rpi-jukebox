@@ -1,0 +1,18 @@
+{{- include "init" . -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jukebox-audio
+  namespace: {{ .conf.namespace | quote }}
+  annotations:
+    volumeType: local
+  labels:
+    app: jukebox
+    {{- include "commonLabels" . | nindent 4 }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi

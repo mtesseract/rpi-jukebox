@@ -1,0 +1,7 @@
+rclone:
+  enabled: true
+monitoring: {}
+jukebox:
+  image:
+    repo: mtesseract/rpi-jukebox
+    tag: latest

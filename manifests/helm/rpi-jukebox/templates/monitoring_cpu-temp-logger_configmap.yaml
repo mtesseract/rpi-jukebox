@@ -1,0 +1,12 @@
+{{- include "init" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: script-cpu-temp-logger
+  namespace: {{ .conf.namespace | quote }}
+  labels:
+    app: cpu-temp-logger
+    {{- include "commonLabels" . | nindent 4 }}
+data:
+  script: |
+    {{- .Files.Get "internal/scripts/cpu-temp-logger.sh" | nindent 4 }}
