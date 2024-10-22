@@ -29,4 +29,4 @@ RUN apt-get update && apt-get -y install tini libasound2
 WORKDIR /app
 COPY --from=builder /proj/out/ /app
 COPY scripts/jukebox-wrapper /app/bin/jukebox-wrapper
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
