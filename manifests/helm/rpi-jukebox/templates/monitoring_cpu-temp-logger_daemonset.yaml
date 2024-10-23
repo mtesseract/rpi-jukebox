@@ -1,0 +1,52 @@
+{{- include "init" . -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cpu-temp-logger
+  namespace: {{ .conf.namespace | quote }}
+  labels:
+    app: cpu-temp-logger
+    {{- include "commonLabels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: cpu-temp-logger
+  template:
+    metadata:
+      labels:
+        app: cpu-temp-logger
+        {{- include "commonLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: logger
+        image: debian:12-slim
+        command: ["/bin/bash"]
+        args: ["/app/cpu-temp-logger"]
+        env:
+        - name: CPU_TEMP_LOG_FILE
+          value: "/host/var/log/cpu-temp.log"
+        - name: SHUTDOWN_COMMAND
+          value: "touch /host/run/jukebox/shutdown"
+        volumeMounts:
+        - name: script-cpu-temp-logger
+          mountPath: /app/cpu-temp-logger
+          subPath: script
+        - name: host-var-log
+          mountPath: /host/var/log
+        - name: run-jukebox
+          mountPath: /host/run/jukebox
+      restartPolicy: Always
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - name: script-cpu-temp-logger
+        configMap:
+          name: script-cpu-temp-logger
+      - name: host-var-log
+        hostPath:
+          path: /var/log
+      - name: run-jukebox
+        hostPath:
+          path: /run/jukebox
+          type: Directory

@@ -1,0 +1,59 @@
+{{- include "init" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jukebox
+  namespace: {{ .conf.namespace | quote }}
+  labels:
+    app: jukebox
+    {{- include "commonLabels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jukebox
+  template:
+    metadata:
+      labels:
+        app: jukebox
+        {{- include "commonLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: jukebox
+        image: {{ .conf.jukeboxImageRef | quote }}
+        imagePullPolicy: IfNotPresent
+        args: ["/app/bin/jukebox-wrapper"]
+        securityContext:
+          privileged: true
+        env:
+        - name: RUST_LOG
+          value: info
+        - name: LOG_FILE
+          value: {{ .conf.logFile }}
+        volumeMounts:
+        - mountPath: /run/pulse
+          name: pulseaudio-run
+        - mountPath: /etc/pulse
+          name: pulseaudio-etc
+        - mountPath: /etc/jukebox
+          name: jukebox-conf
+        - mountPath: /mnt/jukebox-audio
+          name: jukebox-audio
+        - name: jukebox-log
+          mountPath: /mnt/log
+      volumes:
+      - name: pulseaudio-etc
+        hostPath:
+          path: /etc/pulse
+      - name: pulseaudio-run
+        hostPath:
+          path: /run/pulse
+      - name: jukebox-audio
+        persistentVolumeClaim:
+          claimName: jukebox-audio
+      - name: jukebox-conf
+        configMap:
+          name: jukebox-conf
+      - name: jukebox-log
+        persistentVolumeClaim:
+          claimName: jukebox-log

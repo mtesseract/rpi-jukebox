@@ -1,0 +1,5 @@
+** RPi-Jukebox Installed **
+
+Namespace: {{ .conf.namespace }}
+
+rclone: {{ if .conf.rclone.enabled -}} enabled {{- else -}} disabled {{- end }}
