@@ -1,0 +1,58 @@
+- name: Create the monitoring script
+  become: true
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      RUN_JUKEBOX="/run/jukebox"
+      SHUTDOWN_FILE="/run/jukebox/shutdown"
+      mkdir -p "${RUN_JUKEBOX}"
+      find "${RUN_JUKEBOX}" -type f | xargs -r rm
+      while true; do
+          if [ -f "${SHUTDOWN_FILE}" ]; then
+              echo "Initiating system poweroff"
+              systemctl poweroff
+          fi
+          sleep 10
+      done
+    dest: /usr/local/bin/shutdown-initiator
+    mode: '0755'
+  tags:
+  - base
+  - shutdown
+
+- name: Create the systemd service file inline
+  become: true
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Check for shutdown file and power off
+
+      [Service]
+      ExecStart=/usr/local/bin/shutdown-initiator
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/shutdown-initiator.service
+    mode: '0644'
+  tags:
+  - base
+  - shutdown
+
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  tags:
+  - base
+  - shutdown
+
+- name: Start shutdown-initiator service
+  become: true
+  ansible.builtin.systemd:
+    name: shutdown-initiator.service
+    state: started
+    enabled: yes
+  tags:
+  - base
+  - shutdown
