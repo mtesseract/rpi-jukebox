@@ -1,8 +1,8 @@
 {{- define "init" -}}
   {{- if not .initialized -}}
-    {{- $conf := .Files.Get "internal/defaults/00-defaults.yaml" | fromYaml -}}
+    {{- $defaultConf := .Files.Get "internal/defaults/00-defaults.yaml" | fromYaml -}}
+    {{- $conf := merge .Values $defaultConf -}}
     {{- $_ := set $conf "namespace" .Release.Namespace -}}
-    {{- $_ := set . "conf" (merge $conf .Values) -}}
 	{{- $jukeboxImageRepo := dig "jukebox" "image" "repo" "" $conf -}}
 	{{- $jukeboxImageTag := dig "jukebox" "image" "tag" "" $conf -}}
 	{{- $jukeboxImageDigest := dig "jukebox" "image" "digest" "" $conf -}}
@@ -12,6 +12,7 @@
 	{{- end }}
 	{{- $_ := set $conf "jukeboxImageRef" $jukeboxImageRef -}}
     {{- $_ := set . "initialized" true -}}
+    {{- $_ := set . "conf" $conf -}}
   {{- end -}}
 {{- end -}}
 
