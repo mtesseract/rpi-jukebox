@@ -61,7 +61,7 @@ impl TagMapper {
         let content = match fs::read_to_string(&self.path) {
             Ok(cnt) => cnt,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                debug!("No tag mapper configuration found");
+                warn!("No tag mapper configuration found at {}", self.path.display());
                 return Ok(());
             }
             Err(err) => {
