@@ -15,8 +15,8 @@ pub struct FilePlayer {
     base_dir: PathBuf,
     pub sink: Arc<Sink>,
     file_path: Option<PathBuf>,
-    output_stream: OutputStream,
-    output_stream_handle: OutputStreamHandle,
+    _output_stream: OutputStream,
+    _output_stream_handle: OutputStreamHandle,
 }
 
 impl FilePlayer {
@@ -106,8 +106,8 @@ impl FilePlayer {
             base_dir,
             sink: Arc::new(sink),
             file_path: None,
-            output_stream: stream,
-            output_stream_handle: stream_handle,
+            _output_stream: stream,
+            _output_stream_handle: stream_handle,
         };
 
         Ok(player)
